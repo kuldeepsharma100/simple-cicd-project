@@ -5,6 +5,8 @@ pipeline {
         AWS_REGION = 'us-east-1'
         ECR_REPO = '486414219419.dkr.ecr.us-east-1.amazonaws.com/myapp'
         CLUSTER = 'simple-eks'
+        AWS_ACCESS_KEY_ID = 'AKIAW3MEC4VXSADZI4US'
+        AWS_SECRET_ACCESS_KEY = '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'
     }
 
     stages {
