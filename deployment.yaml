@@ -14,12 +14,12 @@ spec:
     spec:
       containers:
         - name: myapp
-          image: <ECR_IMAGE_URI>:latest
+          image: 992382830933.dkr.ecr.us-east-1.amazonaws.com/springboot-eks-demo:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8093
           readinessProbe:
             httpGet:
               path: /
-              port: 8080
+              port: 8093
             initialDelaySeconds: 10
 
