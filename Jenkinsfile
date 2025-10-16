@@ -1,6 +1,7 @@
 pipeline {
     agent any
-    tools{
+
+    tools {
         maven 'Maven'
     }
 
@@ -33,7 +34,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $ECR_REPO:latest .'
+                sh 'docker build -t $ECR_REPO:$BUILD_NUMBER -t $ECR_REPO:latest .'
             }
         }
 
@@ -41,6 +42,7 @@ pipeline {
             steps {
                 sh '''
                     aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin 992382830933.dkr.ecr.$AWS_REGION.amazonaws.com
+                    docker push $ECR_REPO:$BUILD_NUMBER
                     docker push $ECR_REPO:latest
                 '''
             }
@@ -59,7 +61,7 @@ pipeline {
 
         stage('Upload Logs to S3') {
             steps {
-                sh 'aws s3 cp ${WORKSPACE}/logs s3://$S3_BUCKET/logs/ --recursive || true'
+                sh 'mkdir -p logs && aws s3 cp logs s3://$S3_BUCKET/logs/ --recursive || true'
             }
         }
     }
