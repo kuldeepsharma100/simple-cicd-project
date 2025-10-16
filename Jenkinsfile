@@ -3,26 +3,42 @@ pipeline {
 
     environment {
         AWS_REGION = 'us-east-1'
-        ECR_REPO = '486414219419.dkr.ecr.us-east-1.amazonaws.com/myapp'
-        CLUSTER = 'simple-eks'
-        AWS_ACCESS_KEY_ID = 'AKIAW3MEC4VXSADZI4US'
-        AWS_SECRET_ACCESS_KEY = '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'
+        ECR_REPO = '992382830933.dkr.ecr.us-east-1.amazonaws.com/springboot-eks-demo'
+        CLUSTER_NAME = 'simple-cluster'
+        S3_BUCKET = 'springboot-eks-demo-bucket'
+        APP_NAME = 'springboot-eks-demo'
     }
 
     stages {
-        stage('Build') {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/kuldeepsharma100/simple-cicd-project.git'
+            }
+        }
+
+        stage('Build Jar') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Docker Build & Push') {
+        stage('Upload Jar to S3') {
+            steps {
+                sh 'aws s3 cp target/*.jar s3://$S3_BUCKET/'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $ECR_REPO:latest .'
+            }
+        }
+
+        stage('Push to ECR') {
             steps {
                 sh '''
-                aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
-                docker build -t myapp:$BUILD_NUMBER .
-                docker tag myapp:$BUILD_NUMBER $ECR_REPO:$BUILD_NUMBER
-                docker push $ECR_REPO:$BUILD_NUMBER
+                    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin 992382830933.dkr.ecr.$AWS_REGION.amazonaws.com
+                    docker push $ECR_REPO:latest
                 '''
             }
         }
@@ -30,35 +46,27 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh '''
-                aws eks update-kubeconfig --name $CLUSTER --region $AWS_REGION
-                kubectl set image deployment/myapp myapp=$ECR_REPO:$BUILD_NUMBER --record
-                kubectl rollout status deployment/myapp --timeout=120s
+                    aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+                    sed -i "s|<ECR_REPOSITORY_URI>|$ECR_REPO|g" deployment.yaml
+                    kubectl apply -f deployment.yaml
+                    kubectl apply -f service.yaml
                 '''
             }
         }
 
-        stage('Smoke Test') {
+        stage('Upload Logs to S3') {
             steps {
-                sh '''
-                LOAD_BALANCER=$(kubectl get svc myapp-svc -o jsonpath="{.status.loadBalancer.ingress[0].hostname}")
-                echo "App URL: http://$LOAD_BALANCER"
-                curl -f http://$LOAD_BALANCER || exit 1
-                '''
+                sh 'aws s3 cp ${WORKSPACE}/logs s3://$S3_BUCKET/logs/ --recursive || true'
             }
         }
     }
 
     post {
         success {
-            echo "✅ Deployed successfully! BUILD: ${BUILD_NUMBER}"
+            echo "Deployment successful!"
         }
         failure {
-            echo "❌ Deployment failed. Rolling back..."
-            sh '''
-            aws eks update-kubeconfig --name $CLUSTER --region $AWS_REGION
-            kubectl rollout undo deployment/myapp
-            '''
+            echo "Pipeline failed. Check logs."
         }
     }
 }
-
