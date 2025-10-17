@@ -11,7 +11,7 @@ public class DemoApplication {
 
     @GetMapping("/")
     public String home() {
-        return "🚀 Hello from Spring Boot App deployed on EKS!";
+        return "🚀 Hello from Spring Boot App deployed on EKS! Thsi is modified code";
     }
 
     public static void main(String[] args) {
