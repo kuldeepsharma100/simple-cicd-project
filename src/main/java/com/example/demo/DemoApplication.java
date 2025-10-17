@@ -11,7 +11,7 @@ public class DemoApplication {
 
     @GetMapping("/")
     public String home() {
-        return "🚀 Hello from Spring Boot App deployed on EKS! Thsi is modified code Now i have implemented github webhook in my project";
+        return "🚀 Hello from Spring Boot App deployed on EKS! Thsi is modified code Now i have implemented github webhook in my project and this is second test";
     }
 
     public static void main(String[] args) {
